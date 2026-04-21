@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer vs LeWM — Interactive Comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f7f4ef;
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px 60px;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid #e0dbd2;
+    border-radius: 12px;
+    padding: 28px 24px 24px;
+    width: 100%;
+    max-width: 740px;
+    box-shadow: 0 2px 24px rgba(0,0,0,.05);
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0e0e0e;
+    letter-spacing: .02em;
+    margin-bottom: 4px;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 20px;
+  }
+  .card-sub a { color: #1a3a6b; text-decoration: none; border-bottom: 1px solid #c8d8f0; }
+  .header { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .col-label {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    border-radius: 5px;
+  }
+  .lbl-t { background: #f1efe8; color: #5f5e5a; border: 0.5px solid #d3d1c7; }
+  .lbl-l { background: #e8eef8; color: #1a3a6b; border: 0.5px solid #b5d4f4; }
+  .pipe { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .col { display: flex; flex-direction: column; gap: 0; }
+  .stage {
+    border: 0.5px solid #d3d1c7;
+    border-radius: 6px;
+    background: #fafafa;
+    padding: 10px 11px;
+    cursor: pointer;
+    transition: border-color .12s, background .12s;
+    user-select: none;
+  }
+  .stage:hover { border-color: #888; background: #fff; }
+  .stage.active   { border-color: #378add; background: #f0f7fe; }
+  .stage.active.lm { border-color: #1D9E75; background: #f0fbf5; }
+  .stitle { font-size: 11.5px; font-weight: 700; color: #0e0e0e; margin-bottom: 3px; }
+  .ssub   { font-size: 10.5px; color: #666; line-height: 1.4; }
+  .svis   { display: flex; justify-content: center; margin: 7px 0 3px; }
+  .arr    { text-align: center; font-size: 13px; color: #ccc; line-height: 1; margin: 3px 0; }
+  .arr.g  { color: #9fe1cb; }
+  .detail {
+    margin-top: 12px;
+    padding: 11px 14px;
+    border-radius: 5px;
+    border-left: 3px solid #378add;
+    background: #f7f4ef;
+    font-size: 12px;
+    color: #555;
+    line-height: 1.65;
+    min-height: 52px;
+    transition: border-color .2s;
+  }
+  .detail.lm-detail { border-color: #1D9E75; }
+  .table { margin-top: 14px; border-radius: 6px; overflow: hidden; border: 0.5px solid #e0dbd2; }
+  .trow { display: grid; grid-template-columns: 95px 1fr 1fr; font-size: 11px; border-bottom: 0.5px solid #e0dbd2; }
+  .trow:last-child { border-bottom: none; }
+  .trow div { padding: 7px 9px; line-height: 1.45; }
+  .ta { font-weight: 700; color: #666; background: #f7f4ef; font-size: 10px; letter-spacing: .03em; text-transform: uppercase; }
+  .tt { color: #222; background: #fff; }
+  .tl { color: #1a3a6b; background: #f5f8ff; }
+  .thead { background: #f1efe8; }
+  .thead div { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #888; padding: 6px 9px; }
+  .thead .th-l { background: #e8eef8; color: #1a3a6b; }
+  .caption { font-size: 11px; color: #aaa; text-align: center; margin-top: 12px; letter-spacing: .02em; }
+  @media (max-width: 520px) {
+    .pipe, .header { grid-template-columns: 1fr; }
+    .trow { grid-template-columns: 70px 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-title">Transformer vs LeWM — predicting the next frame</div>
+  <div class="card-sub">Based on <a href="https://arxiv.org/pdf/2603.19312v1" target="_blank">Maes, Le Lidec, Scieur, LeCun &amp; Balestriero (2026)</a> · Click any stage for details</div>
+
+  <div class="header">
+    <div class="col-label lbl-t">Standard transformer</div>
+    <div class="col-label lbl-l">LeWM (JEPA)</div>
+  </div>
+
+  <div class="pipe">
+
+    <!-- TRANSFORMER -->
+    <div class="col">
+      <div class="stage" onclick="show(this,'t-input')">
+        <div class="stitle">Input: raw pixels</div>
+        <div class="svis">
+          <svg width="116" height="42" viewBox="0 0 116 42">
+            <rect x="1" y="1" width="52" height="38" rx="4" fill="#e1f5ee" stroke="#5dcaa5" stroke-width="0.5"/>
+            <text x="27" y="26" text-anchor="middle" font-size="18" font-family="serif">🐱</text>
+            <rect x="63" y="1" width="52" height="38" rx="4" fill="#e6f1fb" stroke="#85b7eb" stroke-width="0.5"/>
+            <text x="89" y="26" text-anchor="middle" font-size="15" fill="#378add" font-weight="700" font-family="sans-serif">?</text>
+            <text x="27" y="40" text-anchor="middle" font-size="7.5" fill="#aaa" font-family="sans-serif">frame t</text>
+            <text x="89" y="40" text-anchor="middle" font-size="7.5" fill="#aaa" font-family="sans-serif">frame t+1</text>
+          </svg>
+        </div>
+        <div class="ssub">Cat seen, dog unknown</div>
+      </div>
+      <div class="arr">↓</div>
+      <div class="stage" onclick="show(this,'t-tokenize')">
+        <div class="stitle">Patch tokenization</div>
+        <div class="svis">
+          <svg width="116" height="30" viewBox="0 0 116 30">
+            <rect x="2"  y="3" width="13" height="23" rx="2" fill="#d3d1c7" stroke="#888" stroke-width="0.5"/>
+            <rect x="17" y="3" width="13" height="23" rx="2" fill="#c0dd97" stroke="#639922" stroke-width="0.5"/>
+            <rect x="32" y="3" width="13" height="23" rx="2" fill="#d3d1c7" stroke="#888" stroke-width="0.5"/>
+            <rect x="47" y="3" width="13" height="23" rx="2" fill="#d3d1c7" stroke="#888" stroke-width="0.5"/>
+            <text x="70" y="18" text-anchor="middle" font-size="11" fill="#bbb" font-family="sans-serif">···</text>
+            <rect x="84" y="3" width="13" height="23" rx="2" fill="#b5d4f4" stroke="#378add" stroke-width="0.5"/>
+            <rect x="99" y="3" width="13" height="23" rx="2" fill="#b5d4f4" stroke="#378add" stroke-width="0.5"/>
+          </svg>
+        </div>
+        <div class="ssub">16×16 patches → flat token vectors</div>
+      </div>
+      <div class="arr">↓</div>
+      <div class="stage" onclick="show(this,'t-attn')">
+        <div class="stitle">Self-attention (no action)</div>
+        <div class="svis">
+          <svg width="76" height="58" viewBox="0 0 76 58">
+            <line x1="10" y1="48" x2="38" y2="10" stroke="#E24B4A" stroke-width="1.5" opacity=".8"/>
+            <line x1="10" y1="48" x2="20" y2="10" stroke="#ba7517" stroke-width="1" opacity=".45"/>
+            <line x1="10" y1="48" x2="56" y2="10" stroke="#ba7517" stroke-width="0.7" opacity=".28"/>
+            <line x1="10" y1="48" x2="68" y2="10" stroke="#bbb" stroke-width="0.5" opacity=".2"/>
+            <circle cx="10" cy="48" r="5" fill="#e24b4a" opacity=".9"/>
+            <circle cx="20" cy="10" r="3" fill="#d3d1c7" stroke="#888" stroke-width="0.5"/>
+            <circle cx="38" cy="10" r="3" fill="#c0dd97" stroke="#639922" stroke-width="0.5"/>
+            <circle cx="56" cy="10" r="3" fill="#d3d1c7" stroke="#888" stroke-width="0.5"/>
+            <circle cx="68" cy="10" r="3" fill="#d3d1c7" stroke="#888" stroke-width="0.5"/>
+            <text x="10" y="57" text-anchor="middle" font-size="7.5" fill="#a32d2d" font-family="sans-serif">query</text>
+          </svg>
+        </div>
+        <div class="ssub">All tokens attend to all tokens</div>
+      </div>
+      <div class="arr">↓</div>
+      <div class="stage" onclick="show(this,'t-output')">
+        <div class="stitle">Output: pixel prediction</div>
+        <div class="svis">
+          <svg width="76" height="42" viewBox="0 0 76 42">
+            <rect x="8" y="1" width="60" height="40" rx="4" fill="#fcebeb" stroke="#f09595" stroke-width="0.5"/>
+            <rect x="12" y="5"  width="10" height="10" rx="1" fill="#f4c0d1" opacity=".7"/>
+            <rect x="24" y="5"  width="10" height="10" rx="1" fill="#f09595" opacity=".5"/>
+            <rect x="36" y="5"  width="10" height="10" rx="1" fill="#f4c0d1" opacity=".6"/>
+            <rect x="48" y="5"  width="10" height="10" rx="1" fill="#f7c1c1" opacity=".4"/>
+            <rect x="12" y="17" width="10" height="10" rx="1" fill="#f09595" opacity=".4"/>
+            <rect x="24" y="17" width="10" height="10" rx="1" fill="#f4c0d1" opacity=".7"/>
+            <rect x="36" y="17" width="10" height="10" rx="1" fill="#f7c1c1" opacity=".5"/>
+            <rect x="48" y="17" width="10" height="10" rx="1" fill="#f09595" opacity=".6"/>
+            <rect x="12" y="29" width="10" height="10" rx="1" fill="#f4c0d1" opacity=".5"/>
+            <rect x="24" y="29" width="10" height="10" rx="1" fill="#f7c1c1" opacity=".3"/>
+            <rect x="36" y="29" width="10" height="10" rx="1" fill="#f09595" opacity=".6"/>
+            <rect x="48" y="29" width="10" height="10" rx="1" fill="#f4c0d1" opacity=".4"/>
+          </svg>
+        </div>
+        <div class="ssub">Dense pixel output — blurry under uncertainty</div>
+      </div>
+    </div>
+
+    <!-- LEWM -->
+    <div class="col">
+      <div class="stage lm" onclick="show(this,'l-input')">
+        <div class="stitle">Input: raw pixels</div>
+        <div class="svis">
+          <svg width="116" height="42" viewBox="0 0 116 42">
+            <rect x="1" y="1" width="52" height="38" rx="4" fill="#e1f5ee" stroke="#5dcaa5" stroke-width="0.5"/>
+            <text x="27" y="26" text-anchor="middle" font-size="18" font-family="serif">🐱</text>
+            <rect x="63" y="1" width="52" height="38" rx="4" fill="#e6f1fb" stroke="#85b7eb" stroke-width="0.5"/>
+            <text x="89" y="26" text-anchor="middle" font-size="15" fill="#378add" font-weight="700" font-family="sans-serif">?</text>
+            <text x="27" y="40" text-anchor="middle" font-size="7.5" fill="#aaa" font-family="sans-serif">frame t</text>
+            <text x="89" y="40" text-anchor="middle" font-size="7.5" fill="#aaa" font-family="sans-serif">frame t+1</text>
+          </svg>
+        </div>
+        <div class="ssub">Same cat — different question</div>
+      </div>
+      <div class="arr g">↓</div>
+      <div class="stage lm" onclick="show(this,'l-encode')">
+        <div class="stitle">Encoder → compact vector</div>
+        <div class="svis">
+          <svg width="116" height="38" viewBox="0 0 116 38">
+            <rect x="1" y="3" width="46" height="30" rx="4" fill="#e1f5ee" stroke="#5dcaa5" stroke-width="0.5"/>
+            <text x="24" y="22" text-anchor="middle" font-size="16" font-family="serif">🐱</text>
+            <polygon points="51,19 62,10 62,28" fill="#9fe1cb" opacity=".9"/>
+            <rect x="66" y="9" width="44" height="18" rx="9" fill="#1D9E75" opacity=".15" stroke="#1D9E75" stroke-width="0.5"/>
+            <text x="88" y="21" text-anchor="middle" font-size="9" font-weight="600" fill="#0F6E56" font-family="sans-serif">z_cat</text>
+          </svg>
+        </div>
+        <div class="ssub">ViT CLS token → 1 compact vector</div>
+      </div>
+      <div class="arr g">↓</div>
+      <div class="stage lm" onclick="show(this,'l-predict')">
+        <div class="stitle">Predictor + action (AdaLN)</div>
+        <div class="svis">
+          <svg width="116" height="48" viewBox="0 0 116 48">
+            <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+            <rect x="1" y="10" width="28" height="16" rx="8" fill="#1D9E75" opacity=".15" stroke="#1D9E75" stroke-width="0.5"/>
+            <text x="15" y="21" text-anchor="middle" font-size="8" fill="#0F6E56" font-family="sans-serif">z_cat</text>
+            <rect x="1" y="33" width="28" height="10" rx="4" fill="#eeedfe" stroke="#7f77dd" stroke-width="0.5"/>
+            <text x="15" y="41" text-anchor="middle" font-size="8" fill="#3c3489" font-family="sans-serif">action</text>
+            <rect x="38" y="7" width="30" height="26" rx="5" fill="#f0f7ff" stroke="#378add" stroke-width="0.5"/>
+            <text x="53" y="23" text-anchor="middle" font-size="9" fill="#0c447c" font-family="sans-serif">pred</text>
+            <line x1="29" y1="18" x2="38" y2="18" stroke="#1D9E75" stroke-width="1" marker-end="url(#a)"/>
+            <line x1="15" y1="33" x2="51" y2="33" stroke="#7f77dd" stroke-width="0.7" stroke-dasharray="3 2"/>
+            <rect x="78" y="10" width="34" height="16" rx="8" fill="#85b7eb" opacity=".3" stroke="#378add" stroke-width="0.5"/>
+            <text x="95" y="21" text-anchor="middle" font-size="8" fill="#185fa5" font-family="sans-serif">ẑ_dog</text>
+            <line x1="68" y1="20" x2="78" y2="20" stroke="#378add" stroke-width="1" marker-end="url(#a)"/>
+          </svg>
+        </div>
+        <div class="ssub">Outputs predicted next embedding ẑ_dog</div>
+      </div>
+      <div class="arr g">↓</div>
+      <div class="stage lm" onclick="show(this,'l-loss')">
+        <div class="stitle">Loss: MSE + SIGReg</div>
+        <div class="svis">
+          <svg width="116" height="42" viewBox="0 0 116 42">
+            <ellipse cx="32" cy="21" rx="25" ry="14" fill="#e1f5ee" stroke="#1D9E75" stroke-width="0.5"/>
+            <text x="32" y="24" text-anchor="middle" font-size="9" fill="#0F6E56" font-family="sans-serif">ẑ_dog</text>
+            <ellipse cx="84" cy="21" rx="25" ry="14" fill="#e6f1fb" stroke="#378add" stroke-width="0.5"/>
+            <text x="84" y="24" text-anchor="middle" font-size="9" fill="#185fa5" font-family="sans-serif">z_dog</text>
+            <line x1="57" y1="21" x2="59" y2="21" stroke="#e24b4a" stroke-width="1.5" stroke-dasharray="3 2"/>
+            <text x="58" y="13" text-anchor="middle" font-size="9" font-weight="700" fill="#a32d2d" font-family="sans-serif">MSE</text>
+          </svg>
+        </div>
+        <div class="ssub">Gaussian reg prevents collapse — 1 hyperparameter</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div class="detail" id="detail">Click any stage above to see what happens at that step.</div>
+
+  <!-- Table -->
+  <div class="table">
+    <div class="trow thead">
+      <div></div>
+      <div>Transformer</div>
+      <div class="th-l">LeWM</div>
+    </div>
+    <div class="trow">
+      <div class="ta">Predicts</div>
+      <div class="tt">Next pixel values — exact appearance</div>
+      <div class="tl">Next latent vector — abstract meaning</div>
+    </div>
+    <div class="trow">
+      <div class="ta">Action</div>
+      <div class="tt">Not used</div>
+      <div class="tl">AdaLN-injected into every block</div>
+    </div>
+    <div class="trow">
+      <div class="ta">Anti-collapse</div>
+      <div class="tt">Mask / next-token targets</div>
+      <div class="tl">SIGReg — 1 hyperparameter</div>
+    </div>
+    <div class="trow">
+      <div class="ta">Scale</div>
+      <div class="tt">100M–100B+ params typical</div>
+      <div class="tl">~15M, single GPU, few hours</div>
+    </div>
+  </div>
+
+  <div class="caption">Based on LeWorldModel · Maes, Le Lidec, Scieur, LeCun & Balestriero (2026)</div>
+</div>
+
+<script>
+const info = {
+  't-input':    'Both models see the same cat frame at time t. The transformer asks "what do the pixels look like next?" — LeWM asks "what does the state mean next?" These are not the same question and lead to completely different architectures.',
+  't-tokenize': 'The image is cut into 16×16 patches, each flattened to a ~768-dim vector with a positional embedding. No compression — just a different arrangement of the same pixel information. A 224×224 image becomes 196 tokens.',
+  't-attn':     'Every token attends to every other token. No action signal anywhere — the model has no way to know why the scene changed, only that it did. Attention is computed over raw patch content alone.',
+  't-output':   'Each output token is projected back to pixel values. Problem: many different dogs could plausibly follow the cat frame. MSE training averages over all of them, producing blurry predictions. This instability is what motivated the JEPA approach.',
+  'l-input':    'Identical input. No special data preparation needed. The key difference starts at the very next step — how the frame is processed before any prediction is attempted.',
+  'l-encode':   'A ViT encoder runs over the cat frame and extracts the CLS token — a single vector summarising the whole image. A small MLP projector maps it to the JEPA embedding space. 196 patch tokens compress to 1 compact vector z_cat.',
+  'l-predict':  'The action is embedded by a small MLP and injected into every transformer block via AdaLN — scale, shift, and gate are all predicted from the action (see ConditionalBlock in module.py). The predictor outputs ẑ_dog: the predicted next embedding given this specific action.',
+  'l-loss':     'Two terms only: (1) MSE between ẑ_dog and z_dog (the actual encoding of the real next frame), and (2) SIGReg — penalises deviation from N(0,I) in embedding space, preventing collapse without any EMA target network. One hyperparameter instead of six.'
+};
+let lastSide = 't';
+function show(el, key) {
+  const d = document.getElementById('detail');
+  d.textContent = info[key];
+  lastSide = key.startsWith('l') ? 'l' : 't';
+  d.className = 'detail' + (lastSide === 'l' ? ' lm-detail' : '');
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
